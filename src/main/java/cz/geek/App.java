@@ -13,54 +13,96 @@ public class App {
 
 	private Session session;
 	private Store store;
+	private File root;
 
-	public App(String host, String user, String password) throws MessagingException {
+	public App(String host, String user, String password, File root) throws MessagingException {
 		Properties prop = new Properties();
 		prop.setProperty("mail.store.protocol", "imaps");
 		session = Session.getInstance(prop);
 		store = session.getStore();
 		store.connect(host, user, password);
+		this.root = root;
 	}
 
 	private static final FileFilter FILE_FILTER = new FileFilter() {
-		public boolean accept(File pathname) {
-			return pathname.isFile();
+		public boolean accept(File file) {
+			return file.isFile() && file.getName().endsWith(".eml") && file.length() > 0;
 		}
 	};
 
 	private static final FileFilter DIR_FILTER = new FileFilter() {
-		public boolean accept(File pathname) {
-			return pathname.isDirectory();
+		public boolean accept(File file) {
+			return file.isDirectory();
 		}
 	};
 
 	public static void main( String[] args ) throws Exception {
-		App app = new App("imap.gmail.com", "", "");
-		for (File d: app.listDirs(new File(".")))
-			System.out.println(d.getName());
-		//app.listFolder();
-		//app.importMessage(app.getFolder("xxx"), new File("email.eml"));
+		File root = new File("Inbox");
+		App app = new App("imap.gmail.com",
+                "", "",
+				root
+        );
+		app.listFolder("[Gmail]/Sent Mail");
+		app.listFolder("[Gmail]/All Mail");
+		app.listFolder("[Gmail]/Drafts");
+
+        app.doImport(root);
 	}
 
-	private void importMessage(Folder folder, File file) throws FileNotFoundException, MessagingException {
+	public void doImport(File dir, String folder, boolean recursive) {
+	    if (folder == null)
+		    folder = folderName(dir);
+	    Folder fldr = getFolder(folder);
+        for (File f: listFiles(dir)) {
+            System.out.println(f.getName());
+            try {
+                importMessage(fldr, f);
+            } catch (FileNotFoundException e) {
+                // should not happen
+            } catch (MessagingException e) {
+                e.printStackTrace();
+            }
+        }
+		if (recursive)
+			for (File d: listDirs(dir))
+				doImport(d, recursive);
+    }
+
+	public void doImport(File dir, boolean recursive) {
+		doImport(dir, null, recursive);
+	}
+
+	public void doImport(File dir) {
+		doImport(dir, null, false);
+	}
+
+	public void importMessage(Folder folder, File file) throws FileNotFoundException, MessagingException {
 		FileInputStream is = new FileInputStream(file);
 		MimeMessage msg = new MimeMessage(session, is);
 		folder.appendMessages(new Message[]{msg});
 	}
 
-	private void listFolder() throws MessagingException {
-		Folder folder = getFolder("[Gmail]/All Mail");
+	private String folderName(File dir) {
+		return dir.getAbsolutePath().substring(root.getAbsolutePath().length() + 1);
+	}
+
+	private void listFolder(String name) throws MessagingException {
+		Folder folder = getFolder(name);
 		for (Message m: folder.getMessages()) {
 			System.out.println(m.getSubject());
 		}
 	}
 
-	private Folder getFolder(String name) throws MessagingException {
-		Folder folder = store.getFolder(name);
-		if (!folder.exists())
-			folder.create(Folder.HOLDS_MESSAGES);
-		folder.open(Folder.READ_WRITE);
-		return folder;
+	private Folder getFolder(String name) {
+		try {
+			Folder folder = store.getFolder(name);
+			if (!folder.exists())
+				folder.create(Folder.HOLDS_MESSAGES);
+			folder.open(Folder.READ_WRITE);
+			return folder;
+		} catch (MessagingException e) {
+			throw new RuntimeException("Can not get folder: " + name, e);
+		}
 	}
 
 	private File[] listFiles(File dir) {
