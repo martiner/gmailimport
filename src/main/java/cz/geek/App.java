@@ -14,6 +14,7 @@ public class App {
 	private Session session;
 	private Store store;
 	private File root;
+	private static final String ALL_MAIL = "[Gmail]/All Mail";
 
 	public App(String host, String user, String password, File root) throws MessagingException {
 		Properties prop = new Properties();
@@ -21,6 +22,8 @@ public class App {
 		session = Session.getInstance(prop);
 		store = session.getStore();
 		store.connect(host, user, password);
+		if (!root.exists())
+			throw new IllegalArgumentException("Root dir must exist: " + root);
 		this.root = root;
 	}
 
@@ -37,16 +40,16 @@ public class App {
 	};
 
 	public static void main( String[] args ) throws Exception {
-		File root = new File("Inbox");
+		File root = new File("todo/Inbox");
 		App app = new App("imap.gmail.com",
                 "", "",
 				root
         );
-		app.listFolder("[Gmail]/Sent Mail");
-		app.listFolder("[Gmail]/All Mail");
-		app.listFolder("[Gmail]/Drafts");
+		//app.listFolder("[Gmail]/Sent Mail");
+		//app.listFolder("[Gmail]/All Mail");
+		//app.listFolder("[Gmail]/Drafts");
 
-        app.doImport(root);
+        app.doImport(root, true);
 	}
 
 	public void doImport(File dir, String folder, boolean recursive) {
@@ -83,6 +86,8 @@ public class App {
 	}
 
 	private String folderName(File dir) {
+		if (root.equals(dir))
+			return ALL_MAIL;
 		return dir.getAbsolutePath().substring(root.getAbsolutePath().length() + 1);
 	}
 
