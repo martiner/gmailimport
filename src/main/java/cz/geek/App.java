@@ -1,6 +1,10 @@
 package cz.geek;
 
 
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+
 import javax.mail.*;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
@@ -13,19 +17,17 @@ import java.util.Properties;
 public class App {
 
 	private Session session;
+	
 	private Store store;
-	private File root;
+
 	private static final String ALL_MAIL = "[Gmail]/All Mail";
 
-	public App(String host, String user, String password, File root) throws MessagingException {
+	public App(String host, String user, String password) throws MessagingException {
 		Properties prop = new Properties();
 		prop.setProperty("mail.store.protocol", "imaps");
 		session = Session.getInstance(prop);
 		store = session.getStore();
 		store.connect(host, user, password);
-		if (!root.exists())
-			throw new IllegalArgumentException("Root dir must exist: " + root);
-		this.root = root;
 	}
 
 	private static final FileFilter FILE_FILTER = new FileFilter() {
@@ -41,21 +43,29 @@ public class App {
 	};
 
 	public static void main( String[] args ) throws Exception {
-		File root = new File("todo/Inbox");
-		App app = new App("imap.gmail.com",
-                "", "",
-				root
-        );
+		OptionParser parser = new OptionParser();
+		@SuppressWarnings("unchecked")
+		OptionSpec<String> host = parser.accepts("h").withRequiredArg().ofType(String.class).defaultsTo("imap.gmail.com");
+		OptionSpec<String> user = parser.accepts("u").withRequiredArg().required().ofType(String.class);
+		OptionSpec<String> pass = parser.accepts("p").withRequiredArg().required().ofType(String.class);
+		OptionSet options = parser.parse(args);
+
+		App app = new App(options.valueOf(host), options.valueOf(user), options.valueOf(pass));
+		for (String i: options.nonOptionArguments()) {
+			File file = new File(i);
+			if (file.isDirectory())
+				app.doImport(file, true);
+			else if (file.isFile())
+				app.importMessage(app.getFolder("Inbox"), file);
+		}
 		//app.listFolder("[Gmail]/Sent Mail");
 		//app.listFolder("[Gmail]/All Mail");
 		//app.listFolder("[Gmail]/Drafts");
-
-        app.doImport(root, true);
 	}
 
-	public void doImport(File dir, String folder, boolean recursive) {
+	public void doImport(File dir, File root, String folder, boolean recursive) {
 	    if (folder == null)
-		    folder = folderName(dir);
+		    folder = folderName(dir, root);
 	    Folder fldr = getFolder(folder);
         for (File f: listFiles(dir)) {
             System.out.println(f.getName());
@@ -73,11 +83,11 @@ public class App {
     }
 
 	public void doImport(File dir, boolean recursive) {
-		doImport(dir, null, recursive);
+		doImport(dir, dir, null, recursive);
 	}
 
 	public void doImport(File dir) {
-		doImport(dir, null, false);
+		doImport(dir, dir, null, false);
 	}
 
 	public void importMessage(Folder folder, File file) throws FileNotFoundException, MessagingException {
@@ -86,7 +96,7 @@ public class App {
 		folder.appendMessages(new Message[]{msg});
 	}
 
-	private String folderName(File dir) {
+	private String folderName(File dir, File root) {
 		if (root.equals(dir))
 			return ALL_MAIL;
 		return dir.getAbsolutePath().substring(root.getAbsolutePath().length() + 1);
