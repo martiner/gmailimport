@@ -1,6 +1,7 @@
 package cz.geek;
 
 
+import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -45,10 +46,16 @@ public class App {
 	public static void main( String[] args ) throws Exception {
 		OptionParser parser = new OptionParser();
 		@SuppressWarnings("unchecked")
-		OptionSpec<String> host = parser.accepts("h").withRequiredArg().ofType(String.class).defaultsTo("imap.gmail.com");
-		OptionSpec<String> user = parser.accepts("u").withRequiredArg().required().ofType(String.class);
-		OptionSpec<String> pass = parser.accepts("p").withRequiredArg().required().ofType(String.class);
-		OptionSet options = parser.parse(args);
+		OptionSpec<String> host = parser.accepts("h", "host").withRequiredArg().ofType(String.class).defaultsTo("imap.gmail.com");
+		OptionSpec<String> user = parser.accepts("u", "username").withRequiredArg().required().ofType(String.class);
+		OptionSpec<String> pass = parser.accepts("p", "password").withRequiredArg().required().ofType(String.class);
+		OptionSet options = null;
+		try {
+			options = parser.parse(args);
+		} catch (OptionException e) {
+			parser.printHelpOn(System.out);
+			System.exit(1);
+		}
 
 		App app = new App(options.valueOf(host), options.valueOf(user), options.valueOf(pass));
 		for (String i: options.nonOptionArguments()) {
