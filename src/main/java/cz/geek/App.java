@@ -49,6 +49,7 @@ public class App {
 		OptionSpec<String> host = parser.accepts("h", "host").withRequiredArg().ofType(String.class).defaultsTo("imap.gmail.com");
 		OptionSpec<String> user = parser.accepts("u", "username").withRequiredArg().required().ofType(String.class);
 		OptionSpec<String> pass = parser.accepts("p", "password").withRequiredArg().required().ofType(String.class);
+		OptionSpec<String> target = parser.accepts("t", "target label").withRequiredArg().ofType(String.class);
 		OptionSet options = null;
 		try {
 			options = parser.parse(args);
@@ -61,9 +62,11 @@ public class App {
 		for (String i: options.nonOptionArguments()) {
 			File file = new File(i);
 			if (file.isDirectory())
-				app.doImport(file, true);
-			else if (file.isFile())
-				app.importMessage(app.getFolder("Inbox"), file);
+				app.doImport(file, file, options.valueOf(target), true);
+			else if (file.isFile()) {
+				String folder = options.hasArgument(target) ? options.valueOf(target) : "Inbox";
+				app.importMessage(app.getFolder(folder), file);
+			}
 		}
 		//app.listFolder("[Gmail]/Sent Mail");
 		//app.listFolder("[Gmail]/All Mail");
@@ -86,16 +89,8 @@ public class App {
         }
 		if (recursive)
 			for (File d: listDirs(dir))
-				doImport(d, recursive);
+				doImport(d, root, null, recursive);
     }
-
-	public void doImport(File dir, boolean recursive) {
-		doImport(dir, dir, null, recursive);
-	}
-
-	public void doImport(File dir) {
-		doImport(dir, dir, null, false);
-	}
 
 	public void importMessage(Folder folder, File file) throws FileNotFoundException, MessagingException {
 		FileInputStream is = new FileInputStream(file);
