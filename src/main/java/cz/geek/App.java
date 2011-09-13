@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
 import java.util.Properties;
 
 public class App {
@@ -111,11 +112,15 @@ public class App {
 	}
 
 	private File[] listFiles(File dir) {
-		return dir.listFiles(FILE_FILTER);
+		File[] files = dir.listFiles(FILE_FILTER);
+		Arrays.sort(files);
+		return files;
 	}
 
 	private File[] listDirs(File dir) {
-		return dir.listFiles(DIR_FILTER);
+		File[] files = dir.listFiles(DIR_FILTER);
+		Arrays.sort(files);
+		return files;
 	}
 
 }
