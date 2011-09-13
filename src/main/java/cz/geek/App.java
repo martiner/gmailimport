@@ -8,10 +8,7 @@ import joptsimple.OptionSpec;
 
 import javax.mail.*;
 import javax.mail.internet.MimeMessage;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -77,23 +74,26 @@ public class App {
 	    if (folder == null)
 		    folder = folderName(dir, root);
 	    Folder fldr = getFolder(folder);
-        for (File f: listFiles(dir)) {
-            System.out.println(f.getName());
-            try {
-                importMessage(fldr, f);
-            } catch (FileNotFoundException e) {
-                // should not happen
-            } catch (MessagingException e) {
-                e.printStackTrace();
-            }
-        }
+        for (File f: listFiles(dir))
+            importMessage(fldr, f);
 		if (recursive)
 			for (File d: listDirs(dir))
 				doImport(d, root, null, recursive);
     }
 
-	public void importMessage(Folder folder, File file) throws FileNotFoundException, MessagingException {
-		FileInputStream is = new FileInputStream(file);
+	public void importMessage(Folder folder, File file) {
+		System.out.println(file.getName());
+		try {
+			FileInputStream is = new FileInputStream(file);
+			importMessage(folder, is);
+		} catch (FileNotFoundException e) {
+		    // should not happen
+		} catch (MessagingException e) {
+		    e.printStackTrace();
+		}
+	}
+
+	public void importMessage(Folder folder, InputStream is) throws MessagingException {
 		MimeMessage msg = new MimeMessage(session, is);
 		folder.appendMessages(new Message[]{msg});
 	}
