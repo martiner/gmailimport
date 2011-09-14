@@ -72,7 +72,9 @@ public class App {
 
 	public void doImport(File dir, File root, String folder, boolean recursive) {
 		File[] files = listFiles(dir);
-		if (files.length > 0) {
+		File[] dirs = recursive ? listDirs(dir) : new File[]{};
+
+		if (files.length > 0 || dirs.length > 0) {
 			if (folder == null)
 				folder = folderName(dir, root);
 			Folder fldr = getFolder(folder);
@@ -85,7 +87,7 @@ public class App {
 			}
 		}
 		if (recursive)
-			for (File d: listDirs(dir))
+			for (File d: dirs)
 				doImport(d, root, null, recursive);
     }
 
