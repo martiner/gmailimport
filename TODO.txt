@@ -1,3 +1,14 @@
 Mbox - Thunderbird http://en.wikipedia.org/wiki/Mbox
 DBX - Outlook Express 5/6 http://jmbox.svn.sourceforge.net/viewvc/jmbox/trunk/src/java/jmbox/oe5dbx/
 PST - Outlook http://code.google.com/p/java-libpst/
+
+javax.mail.FolderClosedException: * BYE System Error
+        at com.sun.mail.imap.IMAPFolder.throwClosedException(IMAPFolder.java:2464)
+        at com.sun.mail.imap.IMAPFolder.doCommand(IMAPFolder.java:2586)
+        at com.sun.mail.imap.IMAPFolder.appendMessages(IMAPFolder.java:1417)
+        at cz.geek.App.importMessage(App.java:106)
+        at cz.geek.App.importMessage(App.java:96)
+        at cz.geek.App.doImport(App.java:80)
+        at cz.geek.App.doImport(App.java:89)
+        at cz.geek.App.doImport(App.java:89)
+        at cz.geek.App.main(App.java:62)
