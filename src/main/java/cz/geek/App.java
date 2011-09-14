@@ -76,6 +76,11 @@ public class App {
 	    Folder fldr = getFolder(folder);
         for (File f: listFiles(dir))
             importMessage(fldr, f);
+		try {
+			fldr.close(false);
+		} catch (Exception e) {
+			// next time will be better :)
+		}
 		if (recursive)
 			for (File d: listDirs(dir))
 				doImport(d, root, null, recursive);
