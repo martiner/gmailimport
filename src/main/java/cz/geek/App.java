@@ -71,15 +71,18 @@ public class App {
 	}
 
 	public void doImport(File dir, File root, String folder, boolean recursive) {
-	    if (folder == null)
-		    folder = folderName(dir, root);
-	    Folder fldr = getFolder(folder);
-        for (File f: listFiles(dir))
-            importMessage(fldr, f);
-		try {
-			fldr.close(false);
-		} catch (Exception e) {
-			// next time will be better :)
+		File[] files = listFiles(dir);
+		if (files.length > 0) {
+			if (folder == null)
+				folder = folderName(dir, root);
+			Folder fldr = getFolder(folder);
+			for (File f: files)
+	            importMessage(fldr, f);
+			try {
+				fldr.close(false);
+			} catch (Exception e) {
+				// next time will be better :)
+			}
 		}
 		if (recursive)
 			for (File d: listDirs(dir))
