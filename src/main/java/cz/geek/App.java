@@ -119,8 +119,11 @@ public class App {
 	private Folder getFolder(String name) {
 		try {
 			Folder folder = store.getFolder(name);
-			if (!folder.exists())
+			if (!folder.exists()) {
+				if (name.startsWith("[Gmail]"))
+					throw new RuntimeException("Implicit folder should exist: " + name);
 				folder.create(Folder.HOLDS_MESSAGES);
+			}
 			folder.open(Folder.READ_WRITE);
 			return folder;
 		} catch (MessagingException e) {
