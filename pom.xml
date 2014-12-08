@@ -43,7 +43,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>cz.geek.App</mainClass>
+							<mainClass>cz.geek.GmailImport</mainClass>
 						</manifest>
 					</archive>
 				</configuration>

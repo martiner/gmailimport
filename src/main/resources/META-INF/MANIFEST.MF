@@ -1,3 +1,3 @@
 Manifest-Version: 1.2
 
-Main-Class: cz.geek.App
+Main-Class: cz.geek.GmailImport

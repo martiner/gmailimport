@@ -1,6 +1,5 @@
 package cz.geek;
 
-
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -12,7 +11,7 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.Properties;
 
-public class App {
+public class GmailImport {
 
 	private Session session;
 	
@@ -20,7 +19,7 @@ public class App {
 
 	private static final String ALL_MAIL = "[Gmail]/All Mail";
 
-	public App(String host, String user, String password) throws MessagingException {
+	public GmailImport(String host, String user, String password) throws MessagingException {
 		Properties prop = new Properties();
 		prop.setProperty("mail.store.protocol", "imaps");
 		session = Session.getInstance(prop);
@@ -55,7 +54,7 @@ public class App {
 			System.exit(1);
 		}
 
-		App app = new App(options.valueOf(host), options.valueOf(user), options.valueOf(pass));
+		GmailImport app = new GmailImport(options.valueOf(host), options.valueOf(user), options.valueOf(pass));
 		for (String i: options.nonOptionArguments()) {
 			File file = new File(i);
 			if (file.isDirectory())
