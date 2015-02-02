@@ -1,150 +1,107 @@
 package cz.geek;
 
+import cz.geek.resources.Msg;
+import cz.geek.resources.Resource;
+import cz.geek.resources.ResourceFactory;
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
-import javax.mail.*;
-import javax.mail.internet.MimeMessage;
-import java.io.*;
-import java.util.Arrays;
-import java.util.Properties;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class GmailImport {
 
-	private Session session;
-	
-	private Store store;
+    private final Resource target;
+    private final List<Resource> sources;
 
-	private static final String ALL_MAIL = "[Gmail]/All Mail";
+	public GmailImport(final Resource target, final List<Resource> sources) {
+        this.target = target;
+        this.sources = sources;
+    }
 
-	public GmailImport(String host, String user, String password) throws MessagingException {
-		Properties prop = new Properties();
-		prop.setProperty("mail.store.protocol", "imaps");
-		session = Session.getInstance(prop);
-		store = session.getStore();
-		store.connect(host, user, password);
-	}
+    public GmailImport(final List<String> arguments) {
+        if (arguments.size() < 2) {
+            throw new IllegalArgumentException("at least two arguments");
+        }
+        final ResourceFactory factory = new ResourceFactory();
+        target = factory.createResource(arguments.get(0));
+        sources = new ArrayList<Resource>(arguments.size());
+        for (String resource: arguments.subList(1, arguments.size())) {
+            sources.add(factory.createResource(resource));
+        }
+    }
 
-	private static final FileFilter FILE_FILTER = new FileFilter() {
-		public boolean accept(File file) {
-			return file.isFile() && file.getName().endsWith(".eml") && file.length() > 0;
-		}
-	};
+    public void checkResources() {
+        target.check();
+        for (Resource resource: sources) {
+            resource.check();
+        }
+    }
 
-	private static final FileFilter DIR_FILTER = new FileFilter() {
-		public boolean accept(File file) {
-			return file.isDirectory();
-		}
-	};
+    public void listResources() {
+        checkResources();
+        target.listResources();
+        for (Resource resource: sources) {
+            resource.listResources();
+        }
+    }
 
-	public static void main( String[] args ) throws Exception {
-		OptionParser parser = new OptionParser();
+    public void copy() {
+        for (Resource source: sources) {
+            copy(source, target);
+        }
+    }
+
+    private void copy(final Resource source, final Resource target) {
+        for (Msg msg: source.list()) {
+            target.copy(msg);
+        }
+        for (Resource resource: source.listResources()) {
+            final Resource created = target.createResource(resource.name());
+            copy(resource, created);
+        }
+    }
+
+    public static void main(String... args) throws Exception {
+        final OptionParser parser = new OptionParser();
 		@SuppressWarnings("unchecked")
-		OptionSpec<String> host = parser.accepts("h", "host").withRequiredArg().ofType(String.class).defaultsTo("imap.gmail.com");
-		OptionSpec<String> user = parser.accepts("u", "username").withRequiredArg().required().ofType(String.class);
-		OptionSpec<String> pass = parser.accepts("p", "password").withRequiredArg().required().ofType(String.class);
-		OptionSpec<String> target = parser.accepts("t", "target label").withRequiredArg().ofType(String.class);
-		OptionSet options = null;
+		final OptionSpec<Action> action = parser.accepts("a", "action").withRequiredArg().ofType(Action.class).defaultsTo(Action.check);
 		try {
-			options = parser.parse(args);
+            final OptionSet options = parser.parse(args);
+            final List<String> arguments = options.nonOptionArguments();
+
+            try {
+                final GmailImport app = new GmailImport(arguments);
+                switch (options.valueOf(action)) {
+                    case check:
+                        app.checkResources();
+                        System.out.println("OK");
+                        break;
+                    case list:
+                        app.listResources();
+                        System.out.println("Listed");
+                        break;
+                }
+            } catch (IllegalArgumentException e) {
+                throw new OptionException(Collections.<String>emptyList()) {
+                    @Override
+                    public String getMessage() {
+                        return "Expected one target and at least one source";
+                    }
+                };
+            }
 		} catch (OptionException e) {
-			parser.printHelpOn(System.out);
+            System.err.println(e.getMessage());
+			parser.printHelpOn(System.err);
 			System.exit(1);
 		}
 
-		GmailImport app = new GmailImport(options.valueOf(host), options.valueOf(user), options.valueOf(pass));
-		for (String i: options.nonOptionArguments()) {
-			File file = new File(i);
-			if (file.isDirectory())
-				app.doImport(file, file, options.valueOf(target), true);
-			else if (file.isFile()) {
-				String folder = options.hasArgument(target) ? options.valueOf(target) : "Inbox";
-				app.importMessage(app.getFolder(folder), file);
-			}
-		}
-		//app.listFolder("[Gmail]/Sent Mail");
+        //app.listFolder("[Gmail]/Sent Mail");
 		//app.listFolder("[Gmail]/All Mail");
 		//app.listFolder("[Gmail]/Drafts");
-	}
-
-	public void doImport(File dir, File root, String folder, boolean recursive) {
-		File[] files = listFiles(dir);
-		File[] dirs = recursive ? listDirs(dir) : new File[]{};
-
-		if (files.length > 0 || dirs.length > 0) {
-			if (folder == null)
-				folder = folderName(dir, root);
-			Folder fldr = getFolder(folder);
-			for (File f: files)
-	            importMessage(fldr, f);
-			try {
-				fldr.close(false);
-			} catch (Exception e) {
-				// next time will be better :)
-			}
-		}
-		if (recursive)
-			for (File d: dirs)
-				doImport(d, root, null, recursive);
-    }
-
-	public void importMessage(Folder folder, File file) {
-		System.out.println(file.getName());
-		try {
-			FileInputStream is = new FileInputStream(file);
-			importMessage(folder, is);
-		} catch (FileNotFoundException e) {
-		    // should not happen
-		} catch (MessagingException e) {
-		    e.printStackTrace();
-		}
-	}
-
-	public void importMessage(Folder folder, InputStream is) throws MessagingException {
-		MimeMessage msg = new MimeMessage(session, is);
-		folder.appendMessages(new Message[]{msg});
-	}
-
-	private String folderName(File dir, File root) {
-		if (root.equals(dir))
-			return ALL_MAIL;
-		return dir.getAbsolutePath().substring(root.getAbsolutePath().length() + 1);
-	}
-
-	private void listFolder(String name) throws MessagingException {
-		Folder folder = getFolder(name);
-		for (Message m: folder.getMessages()) {
-			System.out.println(m.getSubject());
-		}
-	}
-
-	private Folder getFolder(String name) {
-		try {
-			Folder folder = store.getFolder(name);
-			if (!folder.exists()) {
-				if (name.startsWith("[Gmail]"))
-					throw new RuntimeException("Implicit folder should exist: " + name);
-				folder.create(Folder.HOLDS_MESSAGES);
-			}
-			folder.open(Folder.READ_WRITE);
-			return folder;
-		} catch (MessagingException e) {
-			throw new RuntimeException("Can not get folder: " + name, e);
-		}
-	}
-
-	private File[] listFiles(File dir) {
-		File[] files = dir.listFiles(FILE_FILTER);
-		Arrays.sort(files);
-		return files;
-	}
-
-	private File[] listDirs(File dir) {
-		File[] files = dir.listFiles(DIR_FILTER);
-		Arrays.sort(files);
-		return files;
 	}
 
 }

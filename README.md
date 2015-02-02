@@ -4,9 +4,13 @@ Import messages from a local disk in Maildir format to Gmail.
 
 ## Usage
 
+https://www.google.com/settings/security/lesssecureapps
+
 ```
-java -jar gmailimport-1.0-SNAPSHOT.jar -u guser -p gpass [maildir...]
+java -jar gmailimport-1.0-SNAPSHOT.jar -u guser -p gpass [-h host] [-t label] [dir|file...]
 ```
+
+martin@example.com:password!host/folder
 
 ## TODO
 
