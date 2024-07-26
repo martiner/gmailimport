@@ -45,7 +45,7 @@ public class GmailImport {
 		OptionSpec<String> host = parser.accepts("h", "host").withRequiredArg().ofType(String.class).defaultsTo("imap.gmail.com");
 		OptionSpec<String> user = parser.accepts("u", "username").withRequiredArg().required().ofType(String.class);
 		OptionSpec<String> pass = parser.accepts("p", "password").withRequiredArg().required().ofType(String.class);
-		OptionSpec<String> target = parser.accepts("t", "target label").withRequiredArg().ofType(String.class);
+		OptionSpec<String> label = parser.accepts("l", "label").withRequiredArg().ofType(String.class);
 		OptionSet options = null;
 		try {
 			options = parser.parse(args);
@@ -58,9 +58,9 @@ public class GmailImport {
 		for (String i: options.nonOptionArguments()) {
 			File file = new File(i);
 			if (file.isDirectory())
-				app.doImport(file, file, options.valueOf(target), true);
+				app.doImport(file, file, options.valueOf(label), true);
 			else if (file.isFile()) {
-				String folder = options.hasArgument(target) ? options.valueOf(target) : "Inbox";
+				String folder = options.hasArgument(label) ? options.valueOf(label) : "Inbox";
 				app.importMessage(app.getFolder(folder), file);
 			}
 		}
