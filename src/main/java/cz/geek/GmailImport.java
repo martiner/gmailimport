@@ -1,15 +1,14 @@
 package cz.geek;
 
 import joptsimple.OptionException;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 
 import javax.mail.*;
 import javax.mail.internet.MimeMessage;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Properties;
+
+import static java.util.Objects.requireNonNullElse;
 
 public class GmailImport {
 
@@ -39,28 +38,21 @@ public class GmailImport {
 		}
 	};
 
-	public static void main( String[] args ) throws Exception {
-		OptionParser parser = new OptionParser();
-		@SuppressWarnings("unchecked")
-		OptionSpec<String> host = parser.accepts("h", "host").withRequiredArg().ofType(String.class).defaultsTo("imap.gmail.com");
-		OptionSpec<String> user = parser.accepts("u", "username").withRequiredArg().required().ofType(String.class);
-		OptionSpec<String> pass = parser.accepts("p", "password").withRequiredArg().required().ofType(String.class);
-		OptionSpec<String> label = parser.accepts("l", "label").withRequiredArg().ofType(String.class);
-		OptionSet options = null;
+	public static void main(String... args) throws Exception {
+		Options options = null;
 		try {
-			options = parser.parse(args);
+			options = Options.parse(System.out, args);
 		} catch (OptionException e) {
-			parser.printHelpOn(System.out);
 			System.exit(1);
 		}
 
-		GmailImport app = new GmailImport(options.valueOf(host), options.valueOf(user), options.valueOf(pass));
-		for (String i: options.nonOptionArguments()) {
+		GmailImport app = new GmailImport(options.getHost(), options.getUser(), options.getPassword());
+		for (String i: options.getArgs()) {
 			File file = new File(i);
 			if (file.isDirectory())
-				app.doImport(file, file, options.valueOf(label), true);
+				app.doImport(file, file, options.getLabel(), true);
 			else if (file.isFile()) {
-				String folder = options.hasArgument(label) ? options.valueOf(label) : "Inbox";
+				String folder = requireNonNullElse(options.getLabel(), "Inbox");
 				app.importMessage(app.getFolder(folder), file);
 			}
 		}
