@@ -14,6 +14,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 public class Options {
+    private Operation operation;
     private String host;
     private String user;
     private String password;
@@ -27,6 +28,7 @@ public class Options {
         OptionSpec<String> user = parser.accepts("u", "username").withRequiredArg().required().ofType(String.class);
         OptionSpec<String> pass = parser.accepts("p", "password").withRequiredArg().required().ofType(String.class);
         OptionSpec<String> label = parser.accepts("l", "label").withRequiredArg().ofType(String.class);
+        parser.accepts("i", "import");
         OptionSet options;
         try {
             options = parser.parse(args);
@@ -35,6 +37,12 @@ public class Options {
             throw e;
         }
         String l = options.hasArgument(label) ? options.valueOf(label) : null;
-        return new Options(options.valueOf(host), options.valueOf(user), options.valueOf(pass), l, options.nonOptionArguments());
+        Operation operation;
+        if (options.has("i")) {
+            operation = Operation.IMPORT;
+        } else {
+            operation = Operation.LIST;
+        }
+        return new Options(operation, options.valueOf(host), options.valueOf(user), options.valueOf(pass), l, options.nonOptionArguments());
     }
 }

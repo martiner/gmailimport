@@ -4,8 +4,14 @@ Import messages from a local disk in Maildir format to Gmail.
 
 ## Usage
 
+### List
 ```
-java -jar gmailimport-1.0-SNAPSHOT.jar -u guser -p gpass [-l label] [maildir...]
+java -jar target/gmailimport-1.0-SNAPSHOT.jar -u guser -p gpass [-l label]
+```
+
+### Import
+```
+java -jar target/gmailimport-1.0-SNAPSHOT.jar -u guser -p gpass [-l label] -i [maildir...]
 ```
 
 ## TODO

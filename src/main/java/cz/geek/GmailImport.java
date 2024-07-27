@@ -6,6 +6,7 @@ import javax.mail.*;
 import javax.mail.internet.MimeMessage;
 import java.io.*;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 import static java.util.Objects.requireNonNullElse;
@@ -22,7 +23,7 @@ public class GmailImport {
 		Properties prop = new Properties();
 		prop.setProperty("mail.store.protocol", "imaps");
 		session = Session.getInstance(prop);
-		store = session.getStore();
+		store = session.getStore("imaps");
 		store.connect(host, user, password);
 	}
 
@@ -47,21 +48,28 @@ public class GmailImport {
 		}
 
 		GmailImport app = new GmailImport(options.getHost(), options.getUser(), options.getPassword());
-		for (String i: options.getArgs()) {
-			File file = new File(i);
-			if (file.isDirectory())
-				app.doImport(file, file, options.getLabel(), true);
-			else if (file.isFile()) {
-				String folder = requireNonNullElse(options.getLabel(), "Inbox");
-				app.importMessage(app.getFolder(folder), file);
-			}
-		}
+		switch (options.getOperation()) {
+            case IMPORT -> app.doImport(options.getLabel(), options.getArgs());
+            case LIST -> app.listFolder(options.getLabel());
+        }
 		//app.listFolder("[Gmail]/Sent Mail");
 		//app.listFolder("[Gmail]/All Mail");
 		//app.listFolder("[Gmail]/Drafts");
 	}
 
-	public void doImport(File dir, File root, String folder, boolean recursive) {
+	public void doImport(String label, List<String> paths) {
+		for (String i: paths) {
+			File file = new File(i);
+			if (file.isDirectory())
+				doImport(file, file, label, true);
+			else if (file.isFile()) {
+				String folder = requireNonNullElse(label, "Inbox");
+				importMessage(getFolder(folder), file);
+			}
+		}
+	}
+
+	private void doImport(File dir, File root, String folder, boolean recursive) {
 		File[] files = listFiles(dir);
 		File[] dirs = recursive ? listDirs(dir) : new File[]{};
 
@@ -82,7 +90,7 @@ public class GmailImport {
 				doImport(d, root, null, recursive);
     }
 
-	public void importMessage(Folder folder, File file) {
+	private void importMessage(Folder folder, File file) {
 		System.out.println(file.getName());
 		try {
 			FileInputStream is = new FileInputStream(file);
@@ -94,7 +102,7 @@ public class GmailImport {
 		}
 	}
 
-	public void importMessage(Folder folder, InputStream is) throws MessagingException {
+	private void importMessage(Folder folder, InputStream is) throws MessagingException {
 		MimeMessage msg = new MimeMessage(session, is);
 		folder.appendMessages(new Message[]{msg});
 	}
@@ -106,7 +114,7 @@ public class GmailImport {
 	}
 
 	private void listFolder(String name) throws MessagingException {
-		Folder folder = getFolder(name);
+		Folder folder = getFolder(requireNonNullElse(name, "[Gmail]/Sent Mail"));
 		for (Message m: folder.getMessages()) {
 			System.out.println(m.getSubject());
 		}
